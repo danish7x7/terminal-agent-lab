@@ -1,5 +1,36 @@
 # Journal
 
+## 2026-07-02 — Phase 2 design frozen: decision 003
+
+**Built**: [[003-pipeline-design]], the authoritative Phase 2 pipeline spec —
+`axes.yaml` schema (3 axis shapes over the paper's 9 axes at reduced scope),
+the generator prompt structure, and a five-gate validation pipeline with the
+seven paper-under-specification flags. Five amendments over the original
+proposal fold in: (1) Gate B checks the fresh baseline is *below the pass
+threshold*, not `== 0.0`, so a nonzero-but-below baseline stays valid; (2) new
+Gate B′ runs the reference `solution_md` and requires it to pass, splitting
+"broken test" from "unsolvable"; (3) Gate C runs full k=4 with no early-stop,
+recording Sonnet's 0–4 success count as a free pass@k preview; (4) C-only
+failures go to `tasks/_unsolved/`, kept apart from `_quarantine/`; (5) gate and
+eval must share one container-launch config (identical `--network none`, memory,
+cpus, pids-limit) so Gate C can't measure solvability under conditions eval
+never sees.
+
+**Why**: [[001-scope]] Deviation 3 — with no RL gradient we get no free
+soft-filtering of broken tasks, so the gate *is* the mitigation. Freezing the
+contract before writing the sampler/gate prevents rework, especially the
+sandbox parity refactor (today `harness/sandbox.py` hardcodes run flags and
+sets no `--pids-limit`).
+
+**Interview takeaway**: the sharp idea is Gate B′. A task scoring 0 is
+ambiguous — impossible, or just hard? Running a *known-good* reference solution
+turns that one ambiguous signal into two orthogonal ones (is the test sane × is
+the agent capable), which is what lets `_quarantine` (throw away) and
+`_unsolved` (keep, review) be different buckets. It's the same move the paper
+leans on implicitly — reward > 0 within 32 rollouts (§D.5) — but made explicit
+because we can't afford 32 and can't tell impossible from hard without an
+oracle.
+
 ## 2026-07-02 — First real-model bug: mixed submit replies + transcript logging
 
 **Built**: investigated toy-pipeline rollouts 1 & 3 (Haiku, step-1 submit,
