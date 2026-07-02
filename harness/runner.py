@@ -90,7 +90,7 @@ def run_task(task_dir: str | Path, cfg: RunConfig, out_dir: str | Path = "evals/
     for rollout in range(cfg.k):
         started = time.monotonic()
         llm = make_client(cfg.model, cfg.temperature, cfg.max_reply_tokens)
-        with Sandbox(image, memory=cfg.memory, cpus=cfg.cpus, network=cfg.network) as sandbox:
+        with Sandbox(image, cfg.container()) as sandbox:
             shell = PersistentShell(sandbox, timeout=cfg.cmd_timeout)
             try:
                 episode = run_episode(llm, shell, instructions, cfg)

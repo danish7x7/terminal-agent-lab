@@ -12,7 +12,7 @@ IMAGE = "python:3.11-slim"
 
 @pytest.fixture
 def shell():
-    with Sandbox(IMAGE, network="none") as sandbox:
+    with Sandbox(IMAGE) as sandbox:
         sh = PersistentShell(sandbox, timeout=10)
         yield sh
         sh.close()
@@ -37,7 +37,7 @@ def test_stderr_is_captured(shell):
 
 
 def test_timeout_kills_and_shell_recovers():
-    with Sandbox(IMAGE, network="none") as sandbox:
+    with Sandbox(IMAGE) as sandbox:
         sh = PersistentShell(sandbox, timeout=2)
         try:
             result = sh.run("sleep 30")

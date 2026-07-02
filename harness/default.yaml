@@ -12,3 +12,4 @@ k: 4
 network: none          # task containers get no network at runtime
 memory: 2g
 cpus: 2.0
+pids_limit: 512        # fork-bomb guard; shared by gate and eval (decision 003)

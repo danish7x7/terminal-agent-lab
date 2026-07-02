@@ -101,12 +101,19 @@ biasing which tasks are admitted. Mandate: **one container-launch config
 object, one code path**, shared by the gate and `harness/runner.py`. No
 per-call flag drift permitted.
 
-Implementation note (constraint, not this step's work): today
-`harness/sandbox.py:Sandbox.start` hardcodes the `docker run` flag list with
-per-arg defaults (`memory`, `cpus`, `network`) and does **not** set
-`--pids-limit`. The gate-build step will (a) add `--pids-limit` and (b) thread
-a single config through both the gate and the runner so parity is structural,
-not a thing to remember. Called out here so the refactor is expected.
+Implementation note: done ahead of the pipeline as a standalone `fix(sandbox)`.
+`harness/sandbox.py` now defines `ContainerConfig(network, memory, cpus,
+pids_limit)`; `Sandbox` takes one and `RunConfig.container()` builds it, so the
+gate and `harness/runner.py` share a single launch path. `--pids-limit`
+(default 512) is now on the `docker run` invocation — our only guard against
+fork-bomb PID exhaustion under the memory cap.
+
+**Known gap (build-time containers):** `build_image` runs `docker build` with
+no `--network`, so build-time steps use the daemon's default (bridge) network
+and are *less* sandboxed than run-time containers; the 600 s build timeout is
+the only backstop. Acceptable because task authors control the Dockerfile and
+all downloads happen at build time by design, but noted so it isn't mistaken
+for full isolation.
 
 ### `gate.json` schema (sketch)
 

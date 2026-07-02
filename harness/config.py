@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from harness.sandbox import ContainerConfig
+
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "default.yaml"
 
 
@@ -23,6 +25,17 @@ class RunConfig:
     network: str = "none"          # docker --network for task containers
     memory: str = "2g"             # docker --memory
     cpus: float = 2.0              # docker --cpus
+    pids_limit: int = 512          # docker --pids-limit (fork-bomb guard)
+
+    def container(self) -> ContainerConfig:
+        """The shared container-launch config; gate and runner both build this
+        so their `docker run` flags can't drift (decision 003 amendment 5)."""
+        return ContainerConfig(
+            network=self.network,
+            memory=self.memory,
+            cpus=self.cpus,
+            pids_limit=self.pids_limit,
+        )
 
 
 def load_config(path: str | Path | None = None, overrides: dict | None = None) -> RunConfig:

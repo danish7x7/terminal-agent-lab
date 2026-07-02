@@ -8,10 +8,30 @@ from __future__ import annotations
 
 import subprocess
 import uuid
+from dataclasses import dataclass
 
 
 class SandboxError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class ContainerConfig:
+    """Container-launch flags shared by the validation gate and the eval runner.
+
+    Decision 003 amendment 5: the gate and eval MUST launch containers with
+    identical flags, or the gate measures solvability under conditions the eval
+    never reproduces. Both sides construct one of these and pass it through
+    Sandbox — parity is structural, not a thing to remember.
+
+    pids_limit is our only guard against fork-bomb PID exhaustion under the
+    memory cap; it was previously absent (decision 003).
+    """
+
+    network: str = "none"
+    memory: str = "2g"
+    cpus: float = 2.0
+    pids_limit: int = 512
 
 
 def build_image(context_dir: str, tag: str, timeout: int = 600) -> str:
@@ -30,22 +50,22 @@ def build_image(context_dir: str, tag: str, timeout: int = 600) -> str:
 class Sandbox:
     """A running container executing `sleep infinity`, used as an exec target."""
 
-    def __init__(self, image: str, memory: str = "2g", cpus: float = 2.0, network: str = "none"):
+    def __init__(self, image: str, config: ContainerConfig | None = None):
         self.image = image
-        self.memory = memory
-        self.cpus = cpus
-        self.network = network
+        self.config = config or ContainerConfig()
         self.name = f"tal-{uuid.uuid4().hex[:12]}"
         self._running = False
 
     def start(self) -> "Sandbox":
+        cfg = self.config
         proc = subprocess.run(
             [
                 "docker", "run", "-d", "--rm",
                 "--name", self.name,
-                "--memory", self.memory,
-                "--cpus", str(self.cpus),
-                "--network", self.network,
+                "--memory", cfg.memory,
+                "--cpus", str(cfg.cpus),
+                "--pids-limit", str(cfg.pids_limit),
+                "--network", cfg.network,
                 self.image,
                 "sleep", "infinity",
             ],
