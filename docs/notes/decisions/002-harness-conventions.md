@@ -17,6 +17,18 @@ so they can be revised):
 2. **Submit marker**: the agent finishes by sending exactly
    `echo COMPLETE_TASK_AND_SUBMIT` as its command. It is detected by the
    parser and **not executed**; the episode ends with `stop_reason=submitted`.
+   *(rev 2, 2026-07-02)* A submit is only accepted when the marker is the
+   **entire content of the reply's single code block**. Mixing commands and
+   the marker in one reply (same block or separate blocks) is a new format
+   error, `mixed_command_and_submit` — the model is told "run commands and
+   submit in separate messages" and the loop continues. Rationale: rev 1
+   matched only the block's first line, so a Haiku reply of the shape
+   `[submit marker]\n[actual solution commands]` in one block was treated as
+   an immediate submit and the solution was silently discarded — toy-pipeline
+   rollouts 1 & 3 (2026-07-02 run) died this way at step 1 with reward 0.
+   Refusing + feeding back is safer than guessing intent in either direction.
+   A command merely *mentioning* the marker mid-line (e.g. in a grep pattern)
+   still executes normally.
 3. **Output truncation**: observations are capped at `max_output_chars`
    (default 10,000 chars ≈ 2.5k tokens); we keep the head and tail halves and
    splice in `... [N chars omitted] ...`, since the middle of long dumps is
@@ -31,5 +43,10 @@ so they can be revised):
 6. **Pass definition**: pass ⇔ reward == 1.0. pass@k uses the unbiased
    estimator (Chen et al. 2021); raw rewards are logged per rollout so any
    other definition can be recomputed offline ([[evaluation]]).
+7. **Transcripts** *(added rev 2)*: every rollout writes a full per-step
+   transcript (model reply, parsed command, observation, exit code, format
+   errors) to `evals/results/transcripts/<run>__r<i>.json`, referenced from
+   the JSONL row's `transcript` field. Summary rows alone made the rev-1
+   submit bug undiagnosable from logs.
 
 Links: [[harness]] · [[verifiers]] · [[001-scope]]

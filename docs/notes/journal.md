@@ -1,5 +1,30 @@
 # Journal
 
+## 2026-07-02 — First real-model bug: mixed submit replies + transcript logging
+
+**Built**: investigated toy-pipeline rollouts 1 & 3 (Haiku, step-1 submit,
+reward 0). Root cause: the rev-1 parser matched the submit marker against only
+the *first line* of the code block, so a reply mixing the marker with solution
+commands was accepted as an instant submit and the work silently discarded.
+Fixed per [[002-harness-conventions]] rev 2: submit is only valid as the sole
+content of the reply's single block; any command+marker mix is a new
+`mixed_command_and_submit` format error fed back as "run commands and submit
+in separate messages". Also added the missing observability: full per-step
+transcripts now land in `evals/results/transcripts/*.json`, linked from each
+JSONL row — the original bug was undiagnosable from summary rows alone.
+
+**Evidence**: re-ran toy-pipeline k=4 with Haiku — pass@1 went 0.25 → 1.0
+(4/4). Rollout 1's first reply hit the new error live: Haiku hallucinated an
+entire multi-turn session in one message (commands, fake outputs, submit),
+got the corrective feedback, and recovered to solve in 8 steps.
+
+**Interview takeaway**: small models don't just fail tasks, they fail the
+*protocol* — the harness's format-error feedback loop is doing real work
+(here worth 0.75 pass@1 on a trivial task). This is exactly why the paper
+found simple harnesses beat Terminus-2 for small models (§C, Table 12): every
+bit of protocol strictness must come with a recovery path, not a silent
+misparse.
+
 ## 2026-07-02 — Phase 1 harness implemented
 
 **Built**: the full `harness/` package per the approved file tree — config

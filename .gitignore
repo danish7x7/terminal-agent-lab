@@ -2,3 +2,4 @@
 __pycache__/
 .venv/
 evals/results/*.jsonl
+evals/results/transcripts/

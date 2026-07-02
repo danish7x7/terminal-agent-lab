@@ -3,7 +3,8 @@ import math
 
 import pytest
 
-from harness.runner import _append_jsonl, pass_at_k, summarize
+from harness.episode import EpisodeResult, Step
+from harness.runner import _append_jsonl, _write_transcript, pass_at_k, summarize
 
 
 def test_pass_at_k_edges():
@@ -30,6 +31,27 @@ def test_summarize_counts_only_full_reward_as_pass():
     assert summary["pass_at_k"]["1"] == pytest.approx(0.5)
     assert summary["pass_at_k"]["4"] == 1.0
     assert "8" not in summary["pass_at_k"]  # only k <= n reported
+
+
+def test_write_transcript_records_full_steps(tmp_path):
+    episode = EpisodeResult(
+        steps=[
+            Step(reply="```bash\nls\n```", command="ls", observation="Output:\nx\nExit code: 0", exit_code=0),
+            Step(reply="mixed", command=None, observation="FORMAT ERROR: ...", format_error="mixed_command_and_submit"),
+        ],
+        submitted=False,
+        stop_reason="max_steps",
+        input_tokens=300,
+        output_tokens=50,
+    )
+    path = tmp_path / "transcripts" / "t__m__s__r0.json"
+    _write_transcript(path, {"task_id": "t", "model": "m", "rollout": 0, "reward": 0.0}, episode)
+    data = json.loads(path.read_text())
+    assert data["task_id"] == "t"
+    assert data["stop_reason"] == "max_steps"
+    assert len(data["steps"]) == 2
+    assert data["steps"][0]["reply"] == "```bash\nls\n```"
+    assert data["steps"][1]["format_error"] == "mixed_command_and_submit"
 
 
 def test_append_jsonl_round_trips(tmp_path):

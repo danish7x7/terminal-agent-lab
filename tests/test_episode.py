@@ -66,6 +66,22 @@ def test_format_error_feeds_back_and_loop_recovers():
     assert shell.commands == []
 
 
+def test_mixed_submit_feeds_back_and_loop_recovers():
+    llm = FakeLLM(
+        [
+            block(f"mkdir -p /output\n{SUBMIT_COMMAND}"),  # mixed: rejected
+            block("mkdir -p /output"),
+            block(SUBMIT_COMMAND),
+        ]
+    )
+    shell = FakeShell()
+    result = run_episode(llm, shell, "task", CFG)
+    assert result.steps[0].format_error == "mixed_command_and_submit"
+    assert "separate messages" in result.steps[0].observation
+    assert shell.commands == ["mkdir -p /output"]  # nothing from the mixed reply ran
+    assert result.submitted
+
+
 def test_token_budget_stops_loop():
     llm = FakeLLM([block("echo hi")])
     result = run_episode(llm, FakeShell(), "task", RunConfig(max_steps=50, token_budget=300))

@@ -8,8 +8,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dataclasses import asdict
+
 from harness.config import RunConfig
-from harness.episode import run_episode
+from harness.episode import EpisodeResult, run_episode
 from harness.llm import make_client
 from harness.sandbox import Sandbox, build_image
 from harness.shell import PersistentShell
@@ -51,6 +53,25 @@ def _append_jsonl(path: Path, row: dict) -> None:
         f.write(json.dumps(row) + "\n")
 
 
+def _write_transcript(path: Path, meta: dict, episode: EpisodeResult) -> None:
+    """Full per-step record (model replies + observations) as a sidecar JSON,
+    so failed rollouts can be investigated after the fact."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                **meta,
+                "stop_reason": episode.stop_reason,
+                "submitted": episode.submitted,
+                "input_tokens": episode.input_tokens,
+                "output_tokens": episode.output_tokens,
+                "steps": [asdict(step) for step in episode.steps],
+            },
+            indent=2,
+        )
+    )
+
+
 def run_task(task_dir: str | Path, cfg: RunConfig, out_dir: str | Path = "evals/results") -> dict:
     task_dir = Path(task_dir)
     task_id = task_dir.name
@@ -61,7 +82,9 @@ def run_task(task_dir: str | Path, cfg: RunConfig, out_dir: str | Path = "evals/
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     model_slug = cfg.model.replace("/", "_").replace(":", "_")
-    out_path = Path(out_dir) / f"{task_id}__{model_slug}__{stamp}.jsonl"
+    run_stem = f"{task_id}__{model_slug}__{stamp}"
+    out_path = Path(out_dir) / f"{run_stem}.jsonl"
+    transcripts_dir = Path(out_dir) / "transcripts"
 
     rewards: list[float] = []
     for rollout in range(cfg.k):
@@ -75,12 +98,19 @@ def run_task(task_dir: str | Path, cfg: RunConfig, out_dir: str | Path = "evals/
             finally:
                 shell.close()
         rewards.append(verdict.reward)
+        transcript_path = transcripts_dir / f"{run_stem}__r{rollout}.json"
+        _write_transcript(
+            transcript_path,
+            {"task_id": task_id, "model": cfg.model, "rollout": rollout, "reward": verdict.reward},
+            episode,
+        )
         _append_jsonl(
             out_path,
             {
                 "task_id": task_id,
                 "model": cfg.model,
                 "rollout": rollout,
+                "transcript": str(transcript_path),
                 "reward": verdict.reward,
                 "passed": verdict.reward == 1.0,
                 "tests_passed": verdict.passed,

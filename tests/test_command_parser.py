@@ -1,4 +1,5 @@
 from harness.command_parser import (
+    MIXED_SUBMIT,
     MULTIPLE_BLOCKS,
     NO_BLOCK,
     SUBMIT_COMMAND,
@@ -43,3 +44,30 @@ def test_submit_detected():
 def test_command_mentioning_submit_marker_midline_is_not_submit():
     parsed = parse_reply(f'```bash\ngrep -r "{SUBMIT_COMMAND}" .\n```')
     assert not parsed.submitted
+    assert parsed.error is None
+
+
+def test_submit_first_then_commands_is_mixed_error():
+    # The exact shape that silently ate toy-pipeline rollouts 1 and 3:
+    # submit marker on line 1, real commands after it.
+    parsed = parse_reply(f"```bash\n{SUBMIT_COMMAND}\nmkdir -p /output\n```")
+    assert not parsed.submitted
+    assert parsed.command is None
+    assert parsed.error == MIXED_SUBMIT
+
+
+def test_commands_then_submit_last_is_mixed_error():
+    parsed = parse_reply(f"```bash\nmkdir -p /output\n{SUBMIT_COMMAND}\n```")
+    assert not parsed.submitted
+    assert parsed.error == MIXED_SUBMIT
+
+
+def test_command_block_plus_submit_block_is_mixed_error():
+    parsed = parse_reply(f"```bash\nls\n```\ndone!\n```bash\n{SUBMIT_COMMAND}\n```")
+    assert not parsed.submitted
+    assert parsed.error == MIXED_SUBMIT
+
+
+def test_submit_with_surrounding_prose_still_submits():
+    parsed = parse_reply(f"Everything checks out.\n```bash\n{SUBMIT_COMMAND}\n```\nDone.")
+    assert parsed.submitted

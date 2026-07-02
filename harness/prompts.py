@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.command_parser import MULTIPLE_BLOCKS, NO_BLOCK, SUBMIT_COMMAND
+from harness.command_parser import MIXED_SUBMIT, MULTIPLE_BLOCKS, NO_BLOCK, SUBMIT_COMMAND
 
 SYSTEM_PROMPT = f"""You are a terminal agent solving a task inside a Linux container.
 
@@ -26,6 +26,9 @@ your command here
 ```bash
 {SUBMIT_COMMAND}
 ```
+
+- NEVER combine work commands and the submit command in the same reply. Run
+  your commands first (one reply each), then submit in a separate, final reply.
 """
 
 
@@ -50,6 +53,12 @@ def format_observation(output: str, exit_code: int | None, truncated: bool, time
 _FORMAT_ERRORS = {
     NO_BLOCK: "Your reply contained no fenced code block.",
     MULTIPLE_BLOCKS: "Your reply contained more than one fenced code block.",
+    MIXED_SUBMIT: (
+        "Your reply mixed commands with the submit command. Nothing was "
+        "executed and nothing was submitted. Run commands and submit in "
+        "separate messages: send your command now, then submit "
+        f"(`{SUBMIT_COMMAND}` alone) in a later reply."
+    ),
 }
 
 
