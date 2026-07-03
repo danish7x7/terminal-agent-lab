@@ -1,5 +1,42 @@
 # Journal
 
+## 2026-07-02 — Phase 2 generator: prompt + parse + materialize
+
+**Built**: `pipeline/generator_prompt.py` (system prompt with the hard
+requirements each mapping to a gate/harness rule + signature-rendered user
+prompt embedding the matching per-kind exemplar), `pipeline/generator.py`
+(prompt a strong model → parse the single JSON object → materialize a task dir
+with `signature.yaml`, `solution.md` kept out of the image), and
+`pipeline/base_images.py` (per-domain base, uniform for now). 18 generator
+tests, all API-free via a fake client.
+
+**Why**: [[003-pipeline-design]] §3 — the generator is the last piece before
+the gate; one task per signature, single-JSON output, ≥30 items for
+metric_threshold, answer only in `tests/`, `task.md` silent on grading.
+
+**Verified against real Sonnet output** — and that is where the value was. A
+5-task smoke batch (in scratchpad, not committed) exercised the gates for real:
+1 task passed A+B+B′ cleanly through to Gate C, 3 were correctly quarantined
+`broken_test` (reference solution didn't reach the threshold), 1 gen-failure.
+Real output surfaced **three JSON-robustness bugs** the unit tests missed, each
+fixed with a regression test: (1) a ```json fence regex truncated at the
+```bash fence *inside* solution_md; (2) first-`{`-to-last-`}` span overshot into
+trailing prose containing a `}` → switched to `raw_decode`; (3) the model
+emitted un-doubled shell/regex backslashes (`\\d`) that are invalid JSON escapes
+→ added a repair pass that doubles only invalid escapes. Also fixed a
+self-inflicted prompt bug (the output schema was shown as JSON *with `//`
+comments*, inviting the model to emit comments) and made `fixture_files`
+optional (a no-input task is valid).
+
+**Interview takeaway**: you cannot unit-test a generator into correctness — the
+failure modes live in the distribution of a real model's output, not in your
+head. Every one of the three parser bugs passed a hand-written test and died on
+the first real Sonnet call. The lesson isn't "write more tests", it's "put the
+real generator on the real model early and cheaply (5 tasks, scratchpad) and
+let the gate tell you the truth." The gate's broken_test bucket is also doing
+exactly its job: generation quality at temp 1.0 is noisy, and the pipeline is
+designed to filter, not to trust.
+
 ## 2026-07-02 — Phase 2 build starts: sandbox parity, axes, sampler, exemplars
 
 **Built**: (1) the amendment-5 safety refactor as a standalone `fix(sandbox)` —
