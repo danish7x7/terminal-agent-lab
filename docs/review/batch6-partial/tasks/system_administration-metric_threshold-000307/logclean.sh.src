@@ -1,0 +1,6 @@
+#!/bin/bash
+# Source template for logclean utility
+# Build and install this to /usr/local/bin/logclean
+# Usage: logclean <directory>
+# Deletes .log files older than LOGCLEAN_KEEP_DAYS (default 7) days
+# Writes summary to /var/log/logclean/run.log

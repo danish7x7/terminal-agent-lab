@@ -1,0 +1,23 @@
+{
+  "task_id": "software_engineering-exact_text-000309",
+  "verdict": "quarantined",
+  "reason": "broken_test",
+  "gate_A": true,
+  "gate_B_reward": 0.0,
+  "gate_B_prime_reward": 0.3333333333333333,
+  "repair_attempts": 1,
+  "gate_L_leak": null,
+  "gate_L_needle": null,
+  "gate_C_successes": null,
+  "gate_C_k": 4,
+  "verifier_output": "F.F                                                                      [100%]\n=================================== FAILURES ===================================\nE   FileNotFoundError: [Errno 2] No such file or directory: '/tests/expected_mathutils.c'\n/usr/local/lib/python3.11/pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: '/tests/expected_mathutils.c'\nE   FileNotFoundError: [Errno 2] No such file or directory: '/tests/expected_netio.c'\n/usr/local/lib/python3.11/pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: '/tests/expected_netio.c'\n=========================== short test summary info ============================\nFAILED test_upgrade.py::test_mathutils_upgraded - FileNotFoundError: [Errno 2...\nFAILED test_upgrade.py::test_netio_upgraded - FileNotFoundError: [Errno 2] No...\n2 failed, 1 passed in 0.01s\n",
+  "solution_steps": [
+    {
+      "exit": 2,
+      "stdout": "patching file /output/mathutils.c\nHunk #2 succeeded at 8 (offset -1 lines).\npatching file /output/netio.c\n",
+      "stderr": "patch: **** malformed patch at line 16: @@ -13,3 +15,4 @@\n\n"
+    }
+  ],
+  "build_error": null,
+  "destination": "/tmp/claude-1000/-home-danish07-projects-terminal-agent-lab/7fb99681-30fc-4a89-a142-17e15604e3f0/scratchpad/batch6/_quarantine/software_engineering-exact_text-000309"
+}

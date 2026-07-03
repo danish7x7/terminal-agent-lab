@@ -1,0 +1,15 @@
+seed: 310
+domain: system_administration
+skill_type: monitoring
+primitive_skills:
+- user/group and permission setup
+- filesystem mount reasoning (offline)
+- log rotation and pruning
+- environment and PATH configuration
+- package build/install from source
+persona: on-call SRE clearing a full disk
+language: python
+task_complexity: short
+command_complexity: bash_only
+fixture: text_only
+verifier: exact_text

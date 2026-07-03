@@ -1,0 +1,7 @@
+2024-01-01 00:00:15 ERROR disk full on /dev/sda1
+2024-01-01 00:00:16 ERROR unable to create temp file in /tmp
+2024-01-01 00:00:17 CRITICAL service health check failed
+2024-01-01 00:00:18 ERROR log rotation aborted
+2024-01-01 00:00:19 WARN  retrying in 30 seconds
+2024-01-01 00:00:49 INFO  disk space partially reclaimed
+2024-01-01 00:00:50 INFO  service resumed normal operation

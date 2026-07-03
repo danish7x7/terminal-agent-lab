@@ -1,0 +1,6 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: R010
+Customer: Dan Brown
+Product: Thingamajig D
+Quantity: 7
+Price: 210.00

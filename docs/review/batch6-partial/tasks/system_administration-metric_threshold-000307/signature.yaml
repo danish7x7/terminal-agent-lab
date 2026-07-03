@@ -1,0 +1,15 @@
+seed: 307
+domain: system_administration
+skill_type: process_mgmt
+primitive_skills:
+- environment and PATH configuration
+- shell profile and dotfile management
+- package build/install from source
+- user/group and permission setup
+- cron/at scheduling authoring
+persona: on-call SRE clearing a full disk
+language: bash
+task_complexity: complex
+command_complexity: bash_code_services
+fixture: text_only
+verifier: metric_threshold

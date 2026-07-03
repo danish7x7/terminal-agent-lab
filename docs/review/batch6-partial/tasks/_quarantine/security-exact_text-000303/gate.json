@@ -1,0 +1,17 @@
+{
+  "task_id": "security-exact_text-000303",
+  "verdict": "quarantined",
+  "reason": "build_failed",
+  "gate_A": false,
+  "gate_B_reward": null,
+  "gate_B_prime_reward": null,
+  "repair_attempts": 0,
+  "gate_L_leak": null,
+  "gate_L_needle": null,
+  "gate_C_successes": null,
+  "gate_C_k": 4,
+  "verifier_output": null,
+  "solution_steps": null,
+  "build_error": "ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref 2iao0cc24en2e9lvzykj1galv::rhivc4epro0ld9638q2wf000d: \"/auth_traffic.pcap\": not found",
+  "destination": "/tmp/claude-1000/-home-danish07-projects-terminal-agent-lab/7fb99681-30fc-4a89-a142-17e15604e3f0/scratchpad/batch6/_quarantine/security-exact_text-000303"
+}

@@ -1,0 +1,3 @@
+mathutils 1.2.0
+strhelper 2.0.0
+netio 0.9.3

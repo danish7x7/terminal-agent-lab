@@ -1,0 +1,4 @@
+{
+  "latest_version": "1.0.0",
+  "patch": "--- netio.c\n+++ netio.c\n@@ -1,4 +1,4 @@\n-/* netio.c - version 0.9.3 */\n+/* netio.c - version 1.0.0 */\n #include <stdio.h>\n #include <string.h>\n \n@@ -6,6 +6,8 @@\n int send_data(const char *buf, int len) {\n+    /* v1: validate length */\n+    if (len <= 0) return -1;\n     return len;\n }\n \n@@ -13,3 +15,4 @@\n int recv_data(char *buf, int maxlen) {\n+    if (maxlen <= 0) return -1;\n     return 0;\n }\n"
+}

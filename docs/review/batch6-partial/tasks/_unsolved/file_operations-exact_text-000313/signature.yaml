@@ -1,0 +1,14 @@
+seed: 313
+domain: file_operations
+skill_type: organization
+primitive_skills:
+- symlink creation and resolution
+- recursive find with predicates (size, mtime, name)
+- archive creation and extraction (tar/zip)
+- directory tree comparison
+persona: developer preparing a release archive
+language: any
+task_complexity: intricate
+command_complexity: bash_code
+fixture: text_only
+verifier: exact_text

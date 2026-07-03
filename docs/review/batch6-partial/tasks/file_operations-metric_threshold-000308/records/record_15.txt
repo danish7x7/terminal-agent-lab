@@ -1,0 +1,6 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: R013
+Customer: Eve Davis
+Product: Contraption E
+Quantity: 2
+Price: 399.99

@@ -1,0 +1,4 @@
+{
+  "latest_version": "2.0.0",
+  "patch": "--- strhelper.c\n+++ strhelper.c\n@@ -1,4 +1,4 @@\n-/* strhelper.c - version 2.0.0 */\n+/* strhelper.c - version 2.0.0 */\n"
+}

@@ -1,0 +1,13 @@
+seed: 314
+domain: data_querying
+skill_type: json_query
+primitive_skills:
+- set operations (union/intersect/except)
+- CSV/TSV column projection and filtering
+- index-aware query reasoning
+persona: auditor reconciling two record sets
+language: bash
+task_complexity: intricate
+command_complexity: bash_only
+fixture: text_only
+verifier: exact_text

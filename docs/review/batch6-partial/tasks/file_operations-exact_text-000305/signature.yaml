@@ -1,0 +1,13 @@
+seed: 305
+domain: file_operations
+skill_type: search_and_filter
+primitive_skills:
+- directory tree comparison
+- line/word/byte counting and reporting
+- deduplication by content hash
+persona: user recovering a mis-named batch of files
+language: any
+task_complexity: intricate
+command_complexity: bash_code_services
+fixture: text_only
+verifier: exact_text

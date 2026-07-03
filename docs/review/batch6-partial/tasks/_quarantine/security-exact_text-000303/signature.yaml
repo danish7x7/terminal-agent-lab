@@ -1,0 +1,14 @@
+seed: 303
+domain: security
+skill_type: auth
+primitive_skills:
+- network packet or pcap inspection (offline)
+- brute-force / dictionary search over a small keyspace
+- access-control and permission review
+- log parsing and anomaly detection
+persona: security engineer hardening a fresh host
+language: multi_language
+task_complexity: moderate
+command_complexity: bash_code_services
+fixture: text_only
+verifier: exact_text

@@ -1,0 +1,14 @@
+seed: 312
+domain: file_operations
+skill_type: search_and_filter
+primitive_skills:
+- safe atomic file replacement
+- directory tree comparison
+- bulk rename with pattern rules
+- deduplication by content hash
+persona: user recovering a mis-named batch of files
+language: rust
+task_complexity: intricate
+command_complexity: bash_only
+fixture: text_only
+verifier: metric_threshold

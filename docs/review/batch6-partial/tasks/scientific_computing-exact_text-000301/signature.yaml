@@ -1,0 +1,13 @@
+seed: 301
+domain: scientific_computing
+skill_type: signal_processing
+primitive_skills:
+- ODE stepping (Euler/RK)
+- histogramming and binning
+- root finding (bisection/Newton)
+persona: physicist running a small simulation
+language: go
+task_complexity: intricate
+command_complexity: bash_code_services
+fixture: text_only
+verifier: exact_text

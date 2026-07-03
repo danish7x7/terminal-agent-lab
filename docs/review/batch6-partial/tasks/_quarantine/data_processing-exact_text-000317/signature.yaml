@@ -1,0 +1,14 @@
+seed: 317
+domain: data_processing
+skill_type: dedup
+primitive_skills:
+- schema validation of records
+- delimited-record reshaping
+- gzip/bzip2 stream handling
+- JSON<->CSV<->YAML conversion
+persona: ETL developer normalising vendor records
+language: python
+task_complexity: short
+command_complexity: bash_code_services
+fixture: text_only
+verifier: exact_text

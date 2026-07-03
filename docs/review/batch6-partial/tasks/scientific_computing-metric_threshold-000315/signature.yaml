@@ -1,0 +1,13 @@
+seed: 315
+domain: scientific_computing
+skill_type: numerical
+primitive_skills:
+- root finding (bisection/Newton)
+- FFT / signal filtering
+- vector/norm computations
+persona: student implementing an ODE stepper
+language: bash
+task_complexity: intricate
+command_complexity: bash_code
+fixture: text_only
+verifier: metric_threshold

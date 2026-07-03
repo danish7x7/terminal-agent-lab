@@ -1,0 +1,5 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: A001
+Category: Finance
+Amount: 1500.00
+Status: Processed

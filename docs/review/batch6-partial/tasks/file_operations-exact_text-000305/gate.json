@@ -1,0 +1,23 @@
+{
+  "task_id": "file_operations-exact_text-000305",
+  "verdict": "admitted",
+  "reason": null,
+  "gate_A": true,
+  "gate_B_reward": 0.0,
+  "gate_B_prime_reward": 1.0,
+  "repair_attempts": 1,
+  "gate_L_leak": false,
+  "gate_L_needle": null,
+  "gate_C_successes": 4,
+  "gate_C_k": 4,
+  "verifier_output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+  "solution_steps": [
+    {
+      "exit": 0,
+      "stdout": "1dc09674acf9c3329f2064fe518d03a0 alpha.txt /data/backup/alpha.txt\n1dc09674acf9c3329f2064fe518d03a0 file1.txt /data/current/file1.txt\n1dc09674acf9c3329f2064fe518d03a0 file2.txt /data/current/file2.txt\n73ab1c2afe3a63b8ab4d7da2a4ddb351 gamma.txt /data/backup/gamma.txt\n73ab1c2afe3a63b8ab4d7da2a4ddb351 gamma_copy.txt /data/current/gamma_copy.txt\nb8334643c51b4264e07ea5f28d0ce949 new_delta.txt /data/current/new_delta.txt\ne51e3f99b9eba0cbf60840c91a395a11 beta.txt /data/backup/beta.txt\ne51e3f99b9eba0cbf60840c91a395a11 doc_beta.txt /data/current/doc_beta.txt\n/data/backup/alpha.txt\n/data/backup/beta.txt\n/data/backup/gamma.txt\n/data/current/new_delta.txt\nonly_in_backup: alpha.txt,beta.txt,gamma.txt\nonly_in_current: doc_beta.txt,file1.txt,file2.txt,gamma_copy.txt,new_delta.txt\nunique_files: 4\ntotal_lines: 7\ntotal_words: 19\ntotal_bytes: 98\n",
+      "stderr": "bash: line 7: curl: command not found\n"
+    }
+  ],
+  "build_error": null,
+  "destination": "/tmp/claude-1000/-home-danish07-projects-terminal-agent-lab/7fb99681-30fc-4a89-a142-17e15604e3f0/scratchpad/batch6/file_operations-exact_text-000305"
+}

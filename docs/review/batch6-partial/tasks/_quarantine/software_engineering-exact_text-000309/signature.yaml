@@ -1,0 +1,13 @@
+seed: 309
+domain: software_engineering
+skill_type: refactoring
+primitive_skills:
+- API request construction and response parsing (offline mock)
+- semantic version comparison
+- diff and patch application
+persona: student implementing an algorithm from a spec
+language: c
+task_complexity: complex
+command_complexity: bash_only
+fixture: text_only
+verifier: exact_text

@@ -1,0 +1,2 @@
+This file should be ignored by the script since it is not a .log file.
+It exists only to test glob filtering.

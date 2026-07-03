@@ -1,0 +1,14 @@
+seed: 311
+domain: data_science
+skill_type: feature_engineering
+primitive_skills:
+- confusion-matrix construction
+- descriptive statistics (mean/median/quantiles)
+- time-series moving averages
+- histogram and distribution summarisation
+persona: analyst building a quick baseline model
+language: bash
+task_complexity: complex
+command_complexity: bash_code_services
+fixture: text_only
+verifier: metric_threshold

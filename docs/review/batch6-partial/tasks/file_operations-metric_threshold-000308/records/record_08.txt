@@ -1,0 +1,6 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: R007
+Customer: Carol White
+Product: Doohickey C
+Quantity: 3
+Price: 59.00

@@ -1,0 +1,14 @@
+seed: 316
+domain: security
+skill_type: web_security
+primitive_skills:
+- brute-force / dictionary search over a small keyspace
+- symmetric encryption/decryption with a known key
+- hex/base64 encoding and decoding
+- signature verification against a public key
+persona: developer fixing a flagged vulnerability
+language: python
+task_complexity: short
+command_complexity: bash_code
+fixture: text_only
+verifier: exact_text

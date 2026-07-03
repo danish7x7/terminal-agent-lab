@@ -1,0 +1,17 @@
+{
+  "task_id": "scientific_computing-metric_threshold-000306",
+  "verdict": "quarantined",
+  "reason": "broken_test",
+  "gate_A": false,
+  "gate_B_reward": null,
+  "gate_B_prime_reward": null,
+  "repair_attempts": 1,
+  "gate_L_leak": null,
+  "gate_L_needle": null,
+  "gate_C_successes": null,
+  "gate_C_k": 4,
+  "verifier_output": null,
+  "solution_steps": null,
+  "build_error": "ERROR: failed to build: failed to solve: dockerfile parse error on line 4: unknown instruction: import",
+  "destination": "/tmp/claude-1000/-home-danish07-projects-terminal-agent-lab/7fb99681-30fc-4a89-a142-17e15604e3f0/scratchpad/batch6/_quarantine/scientific_computing-metric_threshold-000306"
+}

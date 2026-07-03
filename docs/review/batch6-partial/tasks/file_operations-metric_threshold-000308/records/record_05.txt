@@ -1,0 +1,6 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: R004
+Customer: Bob Smith
+Product: Gadget B
+Quantity: 5
+Price: 149.50

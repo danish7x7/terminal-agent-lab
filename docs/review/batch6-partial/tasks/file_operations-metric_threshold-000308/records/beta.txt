@@ -1,0 +1,5 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: B002
+Category: HR
+Amount: 2300.50
+Status: Pending

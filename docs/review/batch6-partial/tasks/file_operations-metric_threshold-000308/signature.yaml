@@ -1,0 +1,13 @@
+seed: 308
+domain: file_operations
+skill_type: archival
+primitive_skills:
+- text search and replace across trees
+- deduplication by content hash
+- checksum manifest generation
+persona: analyst deduplicating exported records
+language: any
+task_complexity: moderate
+command_complexity: bash_code
+fixture: text_only
+verifier: metric_threshold

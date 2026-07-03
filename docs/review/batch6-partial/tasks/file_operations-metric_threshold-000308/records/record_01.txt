@@ -1,0 +1,6 @@
+EXPORT_DATE: UNKNOWN
+Record-ID: R001
+Customer: Alice Johnson
+Product: Widget A
+Quantity: 10
+Price: 99.99

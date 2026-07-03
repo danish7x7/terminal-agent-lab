@@ -1,0 +1,15 @@
+seed: 306
+domain: scientific_computing
+skill_type: linear_algebra
+primitive_skills:
+- precision and rounding-error reasoning
+- histogramming and binning
+- numerical integration and differentiation
+- solving linear systems
+- interpolation and curve fitting
+persona: physicist running a small simulation
+language: any
+task_complexity: moderate
+command_complexity: bash_code
+fixture: text_only
+verifier: metric_threshold

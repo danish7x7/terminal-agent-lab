@@ -1,0 +1,15 @@
+seed: 302
+domain: system_administration
+skill_type: networking_local
+primitive_skills:
+- environment and PATH configuration
+- user/group and permission setup
+- cron/at scheduling authoring
+- systemd/init-style service scripts
+- process inspection and signalling
+persona: engineer scripting a service restart
+language: python
+task_complexity: intricate
+command_complexity: bash_code
+fixture: text_only
+verifier: exact_text

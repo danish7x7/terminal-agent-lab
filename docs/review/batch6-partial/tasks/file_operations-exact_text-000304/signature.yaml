@@ -1,0 +1,13 @@
+seed: 304
+domain: file_operations
+skill_type: archival
+primitive_skills:
+- line/word/byte counting and reporting
+- glob expansion reasoning
+- permission and ownership manipulation
+persona: sysadmin reclaiming disk on a full server
+language: python
+task_complexity: moderate
+command_complexity: bash_code
+fixture: text_only
+verifier: exact_text
