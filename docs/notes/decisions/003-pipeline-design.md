@@ -62,7 +62,10 @@ mean relative to this per-kind value; no gate restates it.
 Order: **A → B → B′ → L → C**. B′ runs *before* C so that a test which rejects
 even a correct solution is blamed on the test, not on the agent. L (answer-leak)
 runs after B′ (the reference answer is known to be well-formed by then) and
-before the expensive C.
+before the expensive C. Implemented in `pipeline/gate.py:run_gate`; every task
+is moved to its bucket (`tasks/`, `tasks/_quarantine/`, `tasks/_unsolved/`) with
+a durable `gate.json`. B, B′, and C all launch containers via the shared
+`RunConfig.container()` so gate and eval flags never drift (amendment 5).
 
 **Gate L — answer-leak (amend 6).** The reward-hacking exposure found while
 authoring the `metric_threshold` exemplar — an answer key visible to the agent
@@ -86,6 +89,28 @@ base64-encoded in the image, or derivable rather than copied) — those still
 rely on Gate B (an agent that reconstructs the answer without doing the task
 would also pre-solve). Documented so the gate isn't mistaken for a proof.
 
+**Gate B′ repair loop (amend 7 — Option B, chosen).** Every broken_test case in
+the first real smoke batch had one root cause: the generator emits a reference
+solution it never executed, so unmeetable thresholds (F1 target above what the
+reference reaches), exit-127 scripts, and hallucinated APIs (`numpy.trapz`) slip
+through. This is a *generator-quality* problem that Gate B′ correctly catches —
+we are **not** wrongly rejecting valid tasks, so the gate is not loosened. But
+rather than only quarantine, on B′ failure we run a **bounded repair loop**:
+feed the model the *actual* verifier output (exit code, stderr, measured metric
+vs. threshold) and ask it to fix the reference or lower the threshold to what the
+reference genuinely achieves; **max 2 retries**; each repaired candidate is
+re-probed through A + B + B′ (so a repair that breaks the build → `broken_test`,
+or over-lowers the threshold into a pre-solved baseline → `pre_solved`);
+still-failing after retries → `broken_test` as before. This is **execution-
+feedback repair, NOT model self-check**: the three failures prove the model
+cannot catch these by reading its own code, so the repair signal must come from
+running it. `repair_attempts` (0–2) is recorded in `gate.json` so a high repair
+rate stays visible as a base-prompt-quality signal instead of being masked — if
+most tasks need repair, the generator prompt, not the loop, is the thing to fix.
+Complementary prevention: the generator's hard requirement 5 now demands
+reference-solution **self-consistency** (the reference must satisfy the stated
+threshold/spec).
+
 **Small-eval-set guess resistance (metric_threshold ≥ 30 items).** A leak-free
 task can *still* be reward-hackable if its held-out set is tiny: with only a
 few test items an agent can eyeball the visible inputs and hardcode plausible
@@ -102,7 +127,7 @@ requirement and worth a lightweight generator-side/gate assertion on
 |---|---|---|---|---|
 | **A buildable** | `docker build` (reuse `harness/sandbox.py:build_image`) | build exits 0 | `_quarantine/` reason `build_failed` | §3.1 build-executability gate (their only one) |
 | **B not pre-solved** *(amend 1)* | run verifier on the **untouched** fresh container | fresh reward is **below the pass threshold** | `_quarantine/` reason `pre_solved` | RL drops all-passing groups (zero-std) |
-| **B′ test-is-solvable** *(amend 2, NEW)* | apply `solution_md`'s reference solution to a fresh container, run verifier | reference reward **reaches the pass threshold** | `_quarantine/` reason `broken_test` | none — new; disambiguates impossible-task vs. unsolvable-by-agent |
+| **B′ test-is-solvable** *(amend 2, NEW; +repair loop, amend 7)* | apply `solution_md`'s reference solution to a fresh container, run verifier; on failure run the bounded repair loop below | reference reward **reaches the pass threshold** (possibly after repair) | `_quarantine/` reason `broken_test` | none — new; disambiguates impossible-task vs. unsolvable-by-agent |
 | **L answer-leak** *(amend 6, NEW)* | grep the **built image filesystem** and `task.md` for the reference answer / expected output that the verifier compares against | the reference answer is **absent** from both the image and `task.md` | `_quarantine/` reason `answer_leak` | none — new; automates the §D.6 reward-hacking guard |
 | **C solvable-by-agent** *(amend 3)* | run the Phase 1 harness with the strong model (Sonnet-class), **full k = 4, NO early-stop** | **≥ 1 / 4** rollouts reach the pass threshold | `_unsolved/` *(amend 4)*, NOT quarantine | reward > 0 within 32 rollouts (§D.5), scaled to 4 |
 
@@ -160,6 +185,7 @@ for full isolation.
   "gate_A": true,
   "gate_B_reward": 0.4,
   "gate_B_prime_reward": 1.0,
+  "repair_attempts": 1,               // 0-2; Gate B' execution-feedback repairs used
   "gate_L_leak": false,               // true = reference answer reachable from image/task.md
   "gate_C_successes": 2,
   "gate_C_k": 4,

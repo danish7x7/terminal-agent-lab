@@ -58,6 +58,12 @@ HARD REQUIREMENTS (a violation makes the task unusable):
 5. `solution_md` is a RUNNABLE reference solution (a sequence of bash commands
    in a ```bash block) that, run on the fresh container, makes the tests pass.
    It is graded automatically, so it must actually work — not be prose.
+   SELF-CONSISTENCY: the reference solution MUST satisfy the task's own stated
+   threshold/spec — the metric it achieves must meet the threshold you set, its
+   output must exactly match what an exact_text test asserts, and every command
+   must exist and run without error. A reference that fails its own tests is the
+   single most common defect: do not set a threshold higher than your reference
+   reaches, and do not call tools/APIs you are unsure exist in the image.
 6. Verifier kind:
    - exact_text: tests assert exact file/stdout content against a reference.
    - metric_threshold: tests compute a numeric metric vs. a reference and

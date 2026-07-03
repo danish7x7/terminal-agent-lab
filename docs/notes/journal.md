@@ -1,5 +1,35 @@
 # Journal
 
+## 2026-07-02 — Phase 2 gate: A→B→B′→L→C with an execution-feedback repair loop
+
+**Built**: `pipeline/gate.py:run_gate` — the full validation gate from
+[[003-pipeline-design]], Option B. Gate A build, B not-pre-solved (fresh reward
+below the pass threshold), B′ reference-solution-passes with a **bounded repair
+loop** (max 2 retries feeding the model the real verifier output — exit code,
+stderr, measured-vs-threshold — then re-probing A+B+B′), L answer-leak (grep the
+image + task.md for distinctive answer strings), C solvable-by-agent (k=4, no
+early-stop, via `harness.runner.run_task` on the shared container config).
+Tasks move to `tasks/`, `tasks/_quarantine/`, or `tasks/_unsolved/` with a
+durable `gate.json` (now including `repair_attempts`, `verifier_output`, and the
+reference-solution step outputs — the exact evidence that was missing from last
+run). Added a reference-solution **self-consistency** requirement to the
+generator prompt. 7 gate unit tests for the pure helpers.
+
+**Why**: the smoke batch's three broken_test cases were all one root cause — the
+generator ships a reference it never executed. That's a generator-quality
+problem the gate correctly catches, so no loosening; instead the repair loop
+converts a chunk of those into admissions using real execution feedback, and
+`repair_attempts` keeps the underlying prompt-quality signal visible.
+
+**Interview takeaway**: the three JSON-robustness bugs and these three
+self-inconsistency modes (unmeetable threshold, exit-127 script, hallucinated
+`numpy.trapz`) are the *same* lesson wearing two hats — real model output at
+temp 1.0 fails in ways no unit test predicts, and the only reliable oracle is
+execution. That's why the repair loop is built on the verifier's output and not
+on asking the model to re-read its code: a model that could spot "trapz doesn't
+exist" by reading would not have written it. Design the feedback signal to come
+from the world, not from the model's self-report.
+
 ## 2026-07-02 — Phase 2 generator: prompt + parse + materialize
 
 **Built**: `pipeline/generator_prompt.py` (system prompt with the hard
