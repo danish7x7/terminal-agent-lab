@@ -1,0 +1,11 @@
+{
+  "task_md": "You are a data engineer validating a nightly export.\n\n`/data/numbers.txt` contains one integer per line. Write `/output/stats.txt` containing exactly two lines and nothing else:\n\n```\nsum=<S>\nmax=<M>\n```\n\nwhere `<S>` is the sum of all the integers and `<M>` is the largest, each with a trailing newline.",
+  "dockerfile": "FROM python:3.11-slim\nRUN pip install --no-cache-dir pytest\nCOPY numbers.txt /data/numbers.txt\nRUN mkdir -p /output\nWORKDIR /app\n",
+  "tests": {
+    "test_stats.py": "from pathlib import Path\n\n\ndef test_stats_exact_content():\n    p = Path('/output/stats.txt')\n    assert p.exists(), 'solution did not write /output/stats.txt'\n    assert p.read_text() == 'sum=25\\nmax=10\\n'\n"
+  },
+  "solution_md": "Reference solution (runnable \u2014 Gate B' executes this):\n\n```bash\nawk 'NR==1{m=$1} {s+=$1; if($1>m)m=$1} END{printf \"sum=%d\\nmax=%d\\n\", s, m}' /data/numbers.txt > /output/stats.txt\n```\n",
+  "fixture_files": {
+    "numbers.txt": "3\n7\n10\n5\n"
+  }
+}

@@ -1,0 +1,265 @@
+# Compositional task axes (decision 003, paper Table 8).
+#
+# Three axis shapes the sampler understands:
+#   - flat:      `values: [...]`            sampled uniformly
+#   - weighted:  `weighted: {value: w}`     normalized, then sampled
+#   - per_domain:`per_domain: {domain: [...]}`  indexed by the drawn domain
+# Axes are resolved top-to-bottom so domain-conditioned axes see `domain`.
+#
+# Reduced scope (decision 001 Dev 2 / PROJECT_SPEC Phase 2):
+#   fixture = text_only only; verifier in {exact_text, metric_threshold}.
+# Lists marked "(authored)" are ours — the paper never publishes them (flag 1).
+
+version: 1
+
+axes:
+  # ---- flat categorical ----
+  domain:                     # 9, paper Table 8 (seeded from Pi et al. 2026)
+    values:
+      - security
+      - software_engineering
+      - file_operations
+      - data_querying
+      - data_science
+      - debugging
+      - scientific_computing
+      - data_processing
+      - system_administration
+
+  task_complexity:            # 4 buckets, uniform (§3.1); descriptions authored (flag 3)
+    values: [short, moderate, complex, intricate]
+    descriptions:
+      short: "1-5 shell commands; a single file or directory; one obvious step."
+      moderate: "5-15 commands; one or two tools chained; a couple of files."
+      complex: "15-30 commands; multi-file; at least one non-obvious step or edge case."
+      intricate: "an intricate multi-stage workflow of 30-60 commands."
+
+  command_complexity:         # 3, paper Table 8; descriptions authored (flag 3)
+    values: [bash_only, bash_code, bash_code_services]
+    descriptions:
+      bash_only: "solvable with shell built-ins and standard coreutils only."
+      bash_code: "requires writing and running a short program (e.g. Python/C)."
+      bash_code_services: "requires standing up a local service/process (no network)."
+
+  fixture:                    # paper's 7 reduced to 1 (decision 001)
+    values: [text_only]
+
+  verifier:                   # paper's 5 reduced to 2 (decision 001); see [[verifiers]]
+    values: [exact_text, metric_threshold]
+
+  # ---- weighted categorical ----
+  language:                   # paper: "8 (weighted)"; weights authored (flag 2)
+    weighted:
+      python: 0.40            # biased toward what our base images carry
+      bash: 0.30
+      any: 0.15
+      c: 0.05
+      cpp: 0.04
+      go: 0.03
+      rust: 0.02
+      multi_language: 0.01
+
+  # ---- domain-conditioned (drawn after `domain`) ----
+  skill_type:                 # paper: 4-7 per domain (authored, flag 1)
+    per_domain:
+      security: [web_security, cryptography, forensics, hardening, auth]
+      software_engineering: [algorithmic, refactoring, testing, build_systems, apis]
+      file_operations: [organization, search_and_filter, archival, permissions]
+      data_querying: [sql, log_querying, json_query, aggregation]
+      data_science: [statistics, feature_engineering, modeling, visualization]
+      debugging: [tracing, root_cause, patching, regression_isolation]
+      scientific_computing: [numerical, simulation, signal_processing, linear_algebra]
+      data_processing: [etl, text_processing, format_conversion, streaming, dedup]
+      system_administration: [process_mgmt, networking_local, scheduling, packaging, monitoring]
+
+  primitive_skills:           # paper: 20-40 per domain, sample 3-5 (authored ~15/domain, flag 1)
+    sample: {min: 3, max: 5}
+    per_domain:
+      security:
+        - "cryptographic hashing and checksum verification"
+        - "symmetric encryption/decryption with a known key"
+        - "log parsing and anomaly detection"
+        - "input sanitisation against an injection payload"
+        - "certificate and key inspection"
+        - "file-integrity auditing"
+        - "access-control and permission review"
+        - "hex/base64 encoding and decoding"
+        - "brute-force / dictionary search over a small keyspace"
+        - "network packet or pcap inspection (offline)"
+        - "regex-based secret scanning"
+        - "timing-safe comparison reasoning"
+        - "password hash identification and cracking (small)"
+        - "signature verification against a public key"
+      software_engineering:
+        - "graph traversal and dependency resolution"
+        - "recursive and iterative algorithm implementation"
+        - "unit-test authoring and execution"
+        - "API request construction and response parsing (offline mock)"
+        - "code refactoring preserving behaviour"
+        - "build-script authoring (make/CMake)"
+        - "data-structure implementation (heap, trie, union-find)"
+        - "string parsing and tokenisation"
+        - "sorting and searching under constraints"
+        - "concurrency-free state machine implementation"
+        - "CLI argument parsing"
+        - "semantic version comparison"
+        - "diff and patch application"
+        - "memoisation and dynamic programming"
+      file_operations:
+        - "recursive find with predicates (size, mtime, name)"
+        - "bulk rename with pattern rules"
+        - "archive creation and extraction (tar/zip)"
+        - "permission and ownership manipulation"
+        - "deduplication by content hash"
+        - "symlink creation and resolution"
+        - "text search and replace across trees"
+        - "directory tree comparison"
+        - "file splitting and joining"
+        - "line/word/byte counting and reporting"
+        - "safe atomic file replacement"
+        - "glob expansion reasoning"
+        - "checksum manifest generation"
+      data_querying:
+        - "SQL SELECT with joins and grouping (sqlite)"
+        - "aggregation and window-style summaries"
+        - "JSON field extraction and filtering (jq-style)"
+        - "CSV/TSV column projection and filtering"
+        - "log line filtering by structured fields"
+        - "top-N and ranking queries"
+        - "set operations (union/intersect/except)"
+        - "date/time range filtering"
+        - "pivoting long-to-wide"
+        - "deduplication and distinct counts"
+        - "schema introspection"
+        - "index-aware query reasoning"
+      data_science:
+        - "descriptive statistics (mean/median/quantiles)"
+        - "correlation and covariance computation"
+        - "train/test split and simple modeling"
+        - "metric computation (accuracy, F1, RMSE)"
+        - "feature normalisation and scaling"
+        - "outlier detection"
+        - "histogram and distribution summarisation"
+        - "linear regression by hand or library"
+        - "confusion-matrix construction"
+        - "resampling and bootstrapping (small)"
+        - "categorical encoding"
+        - "time-series moving averages"
+      debugging:
+        - "stack-trace reading and localisation"
+        - "bisecting a regression"
+        - "adding targeted logging"
+        - "reproducing a failing case minimally"
+        - "off-by-one and boundary-condition fixes"
+        - "dependency/version conflict resolution"
+        - "assertion and invariant checking"
+        - "memory/resource leak reasoning (small)"
+        - "patching without breaking tests"
+        - "diffing expected vs actual output"
+        - "environment-variable and config debugging"
+        - "exit-code interpretation"
+      scientific_computing:
+        - "numerical integration and differentiation"
+        - "matrix multiplication and decomposition"
+        - "root finding (bisection/Newton)"
+        - "ODE stepping (Euler/RK)"
+        - "FFT / signal filtering"
+        - "interpolation and curve fitting"
+        - "Monte Carlo estimation (small, seeded)"
+        - "unit conversion and dimensional analysis"
+        - "histogramming and binning"
+        - "solving linear systems"
+        - "precision and rounding-error reasoning"
+        - "vector/norm computations"
+      data_processing:
+        - "ETL from one format to another"
+        - "record deduplication and normalisation"
+        - "streaming aggregation over a large file"
+        - "field extraction with awk/sed"
+        - "JSON<->CSV<->YAML conversion"
+        - "encoding conversion (utf-8/latin-1)"
+        - "sorting and merging large inputs"
+        - "delimited-record reshaping"
+        - "text tokenisation and counting"
+        - "line filtering and sampling"
+        - "gzip/bzip2 stream handling"
+        - "schema validation of records"
+      system_administration:
+        - "process inspection and signalling"
+        - "cron/at scheduling authoring"
+        - "local port and service checks (offline)"
+        - "package build/install from source"
+        - "disk usage auditing and cleanup"
+        - "user/group and permission setup"
+        - "environment and PATH configuration"
+        - "log rotation and pruning"
+        - "systemd/init-style service scripts"
+        - "resource-limit configuration"
+        - "shell profile and dotfile management"
+        - "filesystem mount reasoning (offline)"
+
+  persona:                    # paper: 6-18 per domain (authored ~6/domain, flag 1)
+    per_domain:
+      security:
+        - "incident responder investigating a 3am page"
+        - "red-team operator crafting an evasion payload"
+        - "compliance auditor preparing a report"
+        - "security engineer hardening a fresh host"
+        - "forensics analyst recovering deleted evidence"
+        - "developer fixing a flagged vulnerability"
+      software_engineering:
+        - "backend engineer under a release deadline"
+        - "open-source maintainer triaging a PR"
+        - "SRE writing a one-off migration script"
+        - "student implementing an algorithm from a spec"
+        - "tech lead adding a missing test suite"
+        - "contractor refactoring legacy code"
+      file_operations:
+        - "sysadmin reclaiming disk on a full server"
+        - "photographer organising a shoot's exports"
+        - "researcher tidying a messy dataset dump"
+        - "developer preparing a release archive"
+        - "analyst deduplicating exported records"
+        - "user recovering a mis-named batch of files"
+      data_querying:
+        - "analyst answering an urgent business question"
+        - "on-call engineer querying logs during an outage"
+        - "data engineer validating a pipeline's output"
+        - "product manager pulling a quick metric"
+        - "auditor reconciling two record sets"
+        - "researcher slicing a survey export"
+      data_science:
+        - "ML engineer sanity-checking a dataset"
+        - "analyst building a quick baseline model"
+        - "researcher computing paper statistics"
+        - "student completing a stats assignment"
+        - "data scientist profiling feature quality"
+        - "engineer computing an eval metric"
+      debugging:
+        - "developer chasing a flaky test"
+        - "on-call engineer bisecting a regression"
+        - "maintainer reproducing a user bug report"
+        - "junior dev stuck on a stack trace"
+        - "SRE debugging a failing job's exit code"
+        - "engineer patching a boundary-condition bug"
+      scientific_computing:
+        - "physicist running a small simulation"
+        - "grad student fitting a curve to data"
+        - "engineer validating a numerical routine"
+        - "researcher processing a signal capture"
+        - "analyst solving a linear system"
+        - "student implementing an ODE stepper"
+      data_processing:
+        - "data engineer converting a legacy export"
+        - "analyst reshaping a delimited dump"
+        - "ETL developer normalising vendor records"
+        - "researcher cleaning scraped text"
+        - "ops engineer streaming a huge log"
+        - "developer migrating an encoding"
+      system_administration:
+        - "sysadmin provisioning a fresh box"
+        - "on-call SRE clearing a full disk"
+        - "devops engineer writing a cron job"
+        - "operator building a package from source"
+        - "admin auditing running processes"
+        - "engineer scripting a service restart"

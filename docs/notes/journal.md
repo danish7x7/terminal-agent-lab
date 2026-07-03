@@ -1,5 +1,36 @@
 # Journal
 
+## 2026-07-02 — Phase 2 build starts: sandbox parity, axes, sampler, exemplars
+
+**Built**: (1) the amendment-5 safety refactor as a standalone `fix(sandbox)` —
+`ContainerConfig(network, memory, cpus, pids_limit)` built once by
+`RunConfig.container()` and threaded through `Sandbox`, so the gate and
+`harness/runner.py` share one `docker run` flag path; added `--pids-limit`
+(512) as the fork-bomb guard that was missing. (2) `pipeline/axes.yaml` with
+real authored lists at reduced scope (9 domains × skill_type/primitive/persona,
+weighted languages, text_only fixture, {exact_text, metric_threshold}). (3) a
+deterministic `pipeline/sampler.py` (flat / weighted / per_domain shapes,
+domain-conditioned axes resolved after domain) with 11 tests. (4) two worked
+generator exemplars (`exact_text`, `metric_threshold`) in the JSON schema
+decision 003 mandates.
+
+**Why**: [[003-pipeline-design]] build order — freeze the container-flag path
+before running generated code, then the sampler is the diversity mechanism and
+the exemplars are the few-shot spine of the generator prompt.
+
+**Verified**: `uv run pytest` green (55 tests: 40 harness/sandbox + 11 sampler +
+the exemplar checks below); both exemplars *built in real containers* and
+confirmed to fail on the fresh image (Gate B: reward 0.0) then pass after their
+reference solution runs (Gate B′: reward 1.0).
+
+**Interview takeaway**: the metric_threshold exemplar surfaced a real design
+subtlety — our verifier returns reward = pytest pass-fraction, so a graded
+"accuracy ≥ 0.80" threshold has to live *inside* the test assertion, and the
+held-out answer key has to ship in `tests/` (copied in only at verify time by
+`verifier.py`), never in the image — otherwise the agent could just `cat` the
+answers (the paper's reward-hacking failure mode, §D.6). Where the ground truth
+physically lives is a security property, not a detail.
+
 ## 2026-07-02 — Phase 2 design frozen: decision 003
 
 **Built**: [[003-pipeline-design]], the authoritative Phase 2 pipeline spec —
