@@ -86,6 +86,18 @@ base64-encoded in the image, or derivable rather than copied) — those still
 rely on Gate B (an agent that reconstructs the answer without doing the task
 would also pre-solve). Documented so the gate isn't mistaken for a proof.
 
+**Small-eval-set guess resistance (metric_threshold ≥ 30 items).** A leak-free
+task can *still* be reward-hackable if its held-out set is tiny: with only a
+few test items an agent can eyeball the visible inputs and hardcode plausible
+outputs, clearing the threshold by guessing rather than by doing the work —
+and Gate L sees nothing, because no answer was ever present to leak. This is a
+distinct surface from file leaks. Mitigation: **every `metric_threshold` task
+must ship ≥ 30 held-out test items**, large enough that guessing from inputs
+alone won't reliably clear a well-chosen threshold. (Our exemplar ships 34; the
+5-row original was brute-force guessable.) Enforced as a generator hard
+requirement and worth a lightweight generator-side/gate assertion on
+`len(test items)`.
+
 | Gate | Check | Pass condition | On fail → | Paper analogue |
 |---|---|---|---|---|
 | **A buildable** | `docker build` (reuse `harness/sandbox.py:build_image`) | build exits 0 | `_quarantine/` reason `build_failed` | §3.1 build-executability gate (their only one) |
@@ -175,9 +187,11 @@ One API call per signature, strong model (Sonnet-class). Two parts.
      not depend on agent-side state.
    - `task.md` never mentions tests, test paths, or grading.
    - Verifier-kind contract (Table 9): `exact_text` → assert exact file/stdout
-     content; `metric_threshold` → compute a numeric metric vs. a reference
-     shipped in the image and assert `metric >= threshold`, with a threshold
-     that demands real work but not perfection.
+     content; `metric_threshold` → compute a numeric metric vs. a reference and
+     assert `metric >= threshold`, with a threshold that demands real work but
+     not perfection. **`metric_threshold` tasks must ship ≥ 30 held-out test
+     items** (see the guess-resistance rule below). The reference/answer key
+     lives only in `tests/`, never in the image (Gate L).
 3. Output: a single JSON object, no prose —
    `{"task_md", "dockerfile", "tests": {"test_*.py": ...}, "solution_md",
    "fixture_files": {"path": ...}}`. **`solution_md` is now load-bearing**: it
