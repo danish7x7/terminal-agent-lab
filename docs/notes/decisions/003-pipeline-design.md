@@ -59,14 +59,39 @@ verifier run *passes* when its reward reaches the task's pass threshold —
 (`metric ≥ threshold`). "Below threshold" / "at threshold" everywhere below
 mean relative to this per-kind value; no gate restates it.
 
-Order: **A → B → B′ → C**. B′ runs *before* C so that a test which rejects even
-a correct solution is blamed on the test, not on the agent.
+Order: **A → B → B′ → L → C**. B′ runs *before* C so that a test which rejects
+even a correct solution is blamed on the test, not on the agent. L (answer-leak)
+runs after B′ (the reference answer is known to be well-formed by then) and
+before the expensive C.
+
+**Gate L — answer-leak (amend 6).** The reward-hacking exposure found while
+authoring the `metric_threshold` exemplar — an answer key visible to the agent
+lets it copy the answer instead of solving — is not specific to that task. It
+is a hazard for **every reference-comparing verifier** (exact_text's expected
+string, metric_threshold's held-out labels, any future oracle output). So it
+must be an **automated invariant, not an authoring habit**. Gate L greps the
+built image's filesystem *and* `task.md` for the reference answer / expected
+output that the verifier checks against; if the answer is reachable from either
+(the running container the agent sees, or the instructions), the task is
+quarantined `answer_leak`. This is what enforces the design rule that the
+ground truth lives only in `tests/` (copied in by `verifier.py` at verify time,
+never in the image) — the exemplars follow it by construction, but Gate L makes
+it structural for *generated* tasks where we can't trust authoring discipline.
+Implementation note: extract the comparison target(s) from the verifier
+(reference file(s) under `tests/`) and `grep -rF` each against the image
+(`docker run ... find / -type f -exec grep`) and against `task.md`; small
+literal answers are the common case, so fixed-string search suffices to start.
+⚠️ Known limitation: catches *verbatim* leaks, not transformed ones (answer
+base64-encoded in the image, or derivable rather than copied) — those still
+rely on Gate B (an agent that reconstructs the answer without doing the task
+would also pre-solve). Documented so the gate isn't mistaken for a proof.
 
 | Gate | Check | Pass condition | On fail → | Paper analogue |
 |---|---|---|---|---|
 | **A buildable** | `docker build` (reuse `harness/sandbox.py:build_image`) | build exits 0 | `_quarantine/` reason `build_failed` | §3.1 build-executability gate (their only one) |
 | **B not pre-solved** *(amend 1)* | run verifier on the **untouched** fresh container | fresh reward is **below the pass threshold** | `_quarantine/` reason `pre_solved` | RL drops all-passing groups (zero-std) |
 | **B′ test-is-solvable** *(amend 2, NEW)* | apply `solution_md`'s reference solution to a fresh container, run verifier | reference reward **reaches the pass threshold** | `_quarantine/` reason `broken_test` | none — new; disambiguates impossible-task vs. unsolvable-by-agent |
+| **L answer-leak** *(amend 6, NEW)* | grep the **built image filesystem** and `task.md` for the reference answer / expected output that the verifier compares against | the reference answer is **absent** from both the image and `task.md` | `_quarantine/` reason `answer_leak` | none — new; automates the §D.6 reward-hacking guard |
 | **C solvable-by-agent** *(amend 3)* | run the Phase 1 harness with the strong model (Sonnet-class), **full k = 4, NO early-stop** | **≥ 1 / 4** rollouts reach the pass threshold | `_unsolved/` *(amend 4)*, NOT quarantine | reward > 0 within 32 rollouts (§D.5), scaled to 4 |
 
 Amendment 1 rationale: a task whose fresh-container baseline is *nonzero but
@@ -82,8 +107,9 @@ preview of the pass@k curve** on the eval model we care about — worth the spen
 ### Bucketing (amend 4)
 
 - `tasks/` — admitted: passed A, B, B′, and C (Sonnet ≥ 1/4).
-- `tasks/_quarantine/<id>/` — **broken**: failed A, B, or B′
-  (`build_failed` | `pre_solved` | `broken_test`). Not eval material.
+- `tasks/_quarantine/<id>/` — **broken**: failed A, B, B′, or L
+  (`build_failed` | `pre_solved` | `broken_test` | `answer_leak`). Not eval
+  material.
 - `tasks/_unsolved/<id>/` — **built + valid test + Sonnet 0/4**: candidate
   genuinely-hard task. Kept *separate* from broken ones for manual review; may
   be rescued into `tasks/` if a human confirms it is solvable.
@@ -122,11 +148,12 @@ for full isolation.
   "gate_A": true,
   "gate_B_reward": 0.4,
   "gate_B_prime_reward": 1.0,
+  "gate_L_leak": false,               // true = reference answer reachable from image/task.md
   "gate_C_successes": 2,
   "gate_C_k": 4,
   "verdict": "admitted",              // admitted | quarantined | unsolved
   "destination": "tasks/",            // tasks/ | tasks/_quarantine/ | tasks/_unsolved/
-  "reason": null                      // build_failed | pre_solved | broken_test | unsolved_by_agent | null
+  "reason": null                      // build_failed | pre_solved | broken_test | answer_leak | unsolved_by_agent | null
 }
 ```
 
