@@ -68,6 +68,23 @@ def test_distinctive_needles_skip_short_and_keep_long(tmp_path):
     assert "short" not in needles                      # < 8 chars, skipped
 
 
+def test_distinctive_needles_exclude_io_paths(tmp_path):
+    # Regression: an I/O path in a test literal must NOT be a leak needle — it
+    # legitimately appears in task.md (seed 105 false-positive: /output/totals.txt).
+    gen = {
+        **CANNED,
+        "task_md": "Write your results to /output/totals.txt.",
+        "tests": {
+            "test_p.py": "def test():\n    assert open('/output/totals.txt').read()\n",
+            "answers.txt": "Widget: 500\nGadget: 1200\n",
+        },
+    }
+    dest = materialize_task(gen, tmp_path / "t", _sig())
+    needles = _distinctive_needles(dest)
+    assert "/output/totals.txt" not in needles     # path excluded
+    assert "Widget: 500" in needles                # real answer kept
+
+
 def test_finalize_moves_dir_and_writes_gate_json(tmp_path):
     src = materialize_task(CANNED, tmp_path / "cand" / "mytask", _sig())
     res = GateResult(task_id="mytask", gate_B_reward=0.0, gate_B_prime_reward=1.0)

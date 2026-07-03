@@ -134,10 +134,19 @@ def _rmi(tag: str) -> None:
     subprocess.run(["docker", "rmi", "-f", tag], capture_output=True)
 
 
+def _is_answer_like(s: str) -> bool:
+    """Keep only strings that could plausibly be a leaked answer. Exclude:
+    - short/common strings (< _MIN_NEEDLE chars, e.g. 'high');
+    - path-like strings (contain '/') — I/O paths such as '/output/totals.txt'
+      legitimately appear in task.md, so matching them there is a false leak.
+    Documented Gate L limitation (decision 003): verbatim, distinctive,
+    non-path answers only."""
+    return len(s) >= _MIN_NEEDLE and "/" not in s
+
+
 def _distinctive_needles(task_dir: Path) -> list[str]:
     """Answer-bearing strings distinctive enough to leak-check: reference-file
-    lines and test string literals of >= _MIN_NEEDLE chars. Short/common answers
-    (e.g. 'high') are deliberately skipped — see decision 003's Gate L limits."""
+    lines and test string literals that pass _is_answer_like."""
     needles: set[str] = set()
     for p in (task_dir / "tests").iterdir():
         if not p.is_file():
@@ -147,7 +156,7 @@ def _distinctive_needles(task_dir: Path) -> list[str]:
             needles.update(m[1] for m in _STR_LITERAL_RE.findall(text))
         else:
             needles.update(line.strip() for line in text.splitlines())
-    return [n for n in sorted(needles) if len(n) >= _MIN_NEEDLE][:25]
+    return [n for n in sorted(needles) if _is_answer_like(n)][:25]
 
 
 def _leak_check(task_dir: Path, tag: str, cfg: RunConfig) -> tuple[bool, str | None]:

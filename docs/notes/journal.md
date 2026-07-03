@@ -21,6 +21,15 @@ problem the gate correctly catches, so no loosening; instead the repair loop
 converts a chunk of those into admissions using real execution feedback, and
 `repair_attempts` keeps the underlying prompt-quality signal visible.
 
+**Gate L false-positive caught in the smoke** (and fixed): Gate L quarantined a
+valid debugging task as `answer_leak` because its needle was `/output/totals.txt`
+— an *I/O path* the task states in task.md by design, wrongly extracted as a
+"distinctive answer" from a test literal. Fix: needles now exclude path-like
+strings (containing `/`). Re-running the same task post-fix: A✓ / B=0.0 / B′=1.0
+/ L=clean / **C=4/4 → admitted**, so the full path completes end to end. This is
+exactly the "wrongly rejecting valid tasks" risk flagged for the gate — worth
+the smoke on its own.
+
 **Interview takeaway**: the three JSON-robustness bugs and these three
 self-inconsistency modes (unmeetable threshold, exit-127 script, hallucinated
 `numpy.trapz`) are the *same* lesson wearing two hats — real model output at
