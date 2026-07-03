@@ -102,6 +102,53 @@ def test_parse_solution_backticks_survive():
     assert "```bash" in data["solution_md"]
 
 
+def test_parse_json5_fallback_trailing_comma():
+    # malformed-but-complete: trailing comma before } — json5 fallback handles it.
+    raw = (
+        '{"task_md":"t","dockerfile":"d",'
+        '"tests":{"test_x.py":"x",},'
+        '"solution_md":"s","fixture_files":{},}'
+    )
+    data = parse_generation(raw)
+    assert data["tests"]["test_x.py"] == "x"
+
+
+def test_parse_json5_fallback_line_comment():
+    raw = (
+        "{\n"
+        '  "task_md":"t", // the instructions\n'
+        '  "dockerfile":"d",\n'
+        '  "tests":{"test_x.py":"x"},\n'
+        '  "solution_md":"s","fixture_files":{}\n'
+        "}"
+    )
+    data = parse_generation(raw)
+    assert data["dockerfile"] == "d"
+
+
+def test_classify_failure_flags_truncation():
+    from dataclasses import dataclass
+
+    @dataclass
+    class R:
+        text: str
+        output_tokens: int
+
+    @dataclass
+    class C:
+        max_tokens: int
+
+    from pipeline.generator import classify_generation_failure
+
+    exc = __import__("json").JSONDecodeError("Unterminated string", "x", 0)
+    d = classify_generation_failure(R("...abc", output_tokens=8192), C(8192), exc)
+    assert d["cause"] == "truncation"
+    assert d["parse_error_type"] == "unterminated_string"
+
+    d2 = classify_generation_failure(R("...abc", output_tokens=4000), C(8192), exc)
+    assert d2["cause"] == "malformed_json"
+
+
 def test_parse_repairs_invalid_shell_backslash_escapes():
     # Real failure mode: model ships a regex/awk backslash un-doubled inside a
     # JSON string, which is an invalid JSON escape until repaired.

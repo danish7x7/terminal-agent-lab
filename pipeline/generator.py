@@ -11,6 +11,7 @@ import json
 import re
 from pathlib import Path
 
+import json5
 import yaml
 
 from pipeline.generator_prompt import SYSTEM_PROMPT, build_user_prompt
@@ -20,7 +21,39 @@ _REQUIRED_KEYS = {"task_md", "dockerfile", "tests", "solution_md"}
 
 
 class GeneratorError(RuntimeError):
-    pass
+    def __init__(self, message: str, detail: dict | None = None):
+        super().__init__(message)
+        self.detail = detail or {}
+
+
+def classify_generation_failure(reply, client, exc: Exception) -> dict:
+    """Label a failed generation so batches self-diagnose: truncation (hit the
+    token ceiling) vs malformed-but-complete JSON, plus the parse-error type."""
+    ceiling = getattr(client, "max_tokens", None)
+    truncated = ceiling is not None and reply.output_tokens >= ceiling
+    msg = str(exc)
+    if "Unterminated string" in msg:
+        etype = "unterminated_string"
+    elif "property name" in msg:
+        etype = "expecting_property_name"
+    elif "Extra data" in msg:
+        etype = "extra_data"
+    elif "escape" in msg:
+        etype = "invalid_escape"
+    elif "missing keys" in msg or "no tests" in msg:
+        etype = "schema"
+    elif "no JSON object" in msg:
+        etype = "no_json_object"
+    else:
+        etype = "other"
+    return {
+        "cause": "truncation" if truncated else "malformed_json",
+        "parse_error_type": etype,
+        "error": msg,
+        "output_tokens": reply.output_tokens,
+        "max_tokens": ceiling,
+        "raw_tail": reply.text[-800:],
+    }
 
 
 _VALID_ESCAPE = re.compile(r'\\(?:["\\/bfnrtu]|u[0-9a-fA-F]{4})')
@@ -67,16 +100,26 @@ def parse_generation(text: str) -> dict:
     if start == -1:
         raise GeneratorError("generation contained no JSON object")
     body = text[start:]
-    # strict=False tolerates literal control chars (raw newlines/tabs) in
-    # strings; the escape-repair fallback fixes lone shell/regex backslashes.
+    # Fallback chain, cheapest first:
+    #  1. strict=False raw_decode — tolerates literal control chars in strings;
+    #  2. + escape repair — fixes lone shell/regex backslashes (\d, \.);
+    #  3. json5 — tolerates the malformed-but-complete cases models actually
+    #     emit (trailing commas, // comments, unquoted keys), string-aware so it
+    #     won't corrupt content the way a regex would.
     decoder = json.JSONDecoder(strict=False)
-    try:
-        data, _ = decoder.raw_decode(body)
-    except json.JSONDecodeError:
+    data = None
+    last_exc: Exception | None = None
+    for source in (body, _repair_json_escapes(body)):
         try:
-            data, _ = decoder.raw_decode(_repair_json_escapes(body))
+            data, _ = decoder.raw_decode(source)
+            break
         except json.JSONDecodeError as exc:
-            raise GeneratorError(f"generation was not valid JSON: {exc}") from exc
+            last_exc = exc
+    if data is None:
+        try:
+            data = json5.loads(body[: body.rfind("}") + 1])
+        except Exception as exc:  # noqa: BLE001 - json5 raises varied types
+            raise GeneratorError(f"generation was not valid JSON: {last_exc or exc}") from exc
     missing = _REQUIRED_KEYS - data.keys()
     if missing:
         raise GeneratorError(f"generation missing keys: {sorted(missing)}")
@@ -132,5 +175,8 @@ def generate_task(sig: Signature, client, axes: dict | None = None, dest_root: s
         axes = load_axes()
     user_prompt = build_user_prompt(sig, axes)
     reply = client.chat(SYSTEM_PROMPT, [{"role": "user", "content": user_prompt}])
-    data = parse_generation(reply.text)
+    try:
+        data = parse_generation(reply.text)
+    except GeneratorError as exc:
+        raise GeneratorError(str(exc), detail=classify_generation_failure(reply, client, exc)) from exc
     return materialize_task(data, Path(dest_root) / task_id(sig), sig)

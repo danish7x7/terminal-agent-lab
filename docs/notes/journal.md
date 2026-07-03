@@ -1,5 +1,60 @@
 # Journal
 
+## 2026-07-02 — Generator output validity: diagnose truncation vs malformed
+
+**Diagnosed first**: the two `gen_failed` seeds from the last smoke were NOT
+token-ceiling truncation — re-requesting at the same 8192 ceiling showed
+output of 6066 and 4297 tokens (well under), and both happened to parse on the
+retry. So the original failures were *stochastic malformed-but-complete JSON*
+(trailing comma / comment / stray quote), a different bug class than the
+escape-repair already done, and no `max_tokens` change fixes it. Recorded the
+token counts so the call was evidence-based, not a guess.
+
+**Fixed by cause**: (1) a `json5` last-resort parse fallback — string-aware, so
+it absorbs the malformed-but-complete cases models actually emit (trailing
+commas, `//` comments, unquoted keys) without the corruption risk of hand-rolled
+regex; the strict → escape-repair → json5 chain now covers all observed modes.
+(2) `classify_generation_failure` tags every gen-failure as `truncation` vs
+`malformed_json` with the parse-error type and the raw tail, persisted so future
+batches self-diagnose instead of needing a manual re-look. (3) raised generation
+`max_tokens` to 16384 as cheap headroom (insurance, not the fix — truncation
+wasn't happening).
+
+**Format tradeoff (my read, unchanged pending your call)**: keep the single
+JSON blob. Truncation isn't the pressure (4–6k tokens under an 8k ceiling, now
+16k), and the blob's real weakness — escaping/validity — is better handled at
+*parse* time (repair + json5) than by switching to a delimiter/heredoc file
+format. A format change is a real refactor with its own parser and loses schema
+validation; only worth it if intricate tasks start truncating even at 16k.
+
+**Interview takeaway**: "invalid JSON from the model" is not one bug — it's at
+least three (truncation, bad escapes, malformed-but-complete), and they need
+three different fixes (bigger ceiling, escape repair, lenient parse). Lumping
+them as "add a JSON repair" would have raised max_tokens for a problem that
+wasn't truncation. Diagnosis before fix, with the token count as the
+discriminator, is the whole game.
+
+## 2026-07-02 — A newly-built gate wrongly rejected a valid task (Gate L)
+
+**What happened**: the first run of the freshly-built validation gate
+quarantined a perfectly valid debugging task as `answer_leak`. Root cause: Gate
+L's needle extraction pulled `/output/totals.txt` — an *I/O path the task states
+in task.md by design* — out of a test string literal and matched it against
+task.md. The "answer" it "found leaking" was the output path, not the answer.
+Fix: leak needles now exclude path-like strings (containing `/`), documented as
+a Gate L limitation. Re-running the same task post-fix: A✓ / B=0.0 / B′=1.0 /
+L=clean / **C=4/4 → admitted** — the full path completes.
+
+**Why it matters (the lesson)**: *gates are tasks too, and false-rejects are
+silent.* A gate that wrongly quarantines looks identical from the outside to a
+gate correctly filtering junk — the task just isn't in `tasks/`. Without the
+durable per-gate evidence (`gate.json` recording the exact needle and verdict),
+this would have been invisible: we'd have shipped a gate that quietly discards a
+fraction of good tasks and called the low yield "generation quality". The same
+principle that makes the eval trustworthy — persist why, per unit — is what
+makes the *gate* auditable. Build the observability into the filter, not just
+the thing being filtered.
+
 ## 2026-07-02 — Phase 2 gate: A→B→B′→L→C with an execution-feedback repair loop
 
 **Built**: `pipeline/gate.py:run_gate` — the full validation gate from
@@ -20,15 +75,6 @@ generator ships a reference it never executed. That's a generator-quality
 problem the gate correctly catches, so no loosening; instead the repair loop
 converts a chunk of those into admissions using real execution feedback, and
 `repair_attempts` keeps the underlying prompt-quality signal visible.
-
-**Gate L false-positive caught in the smoke** (and fixed): Gate L quarantined a
-valid debugging task as `answer_leak` because its needle was `/output/totals.txt`
-— an *I/O path* the task states in task.md by design, wrongly extracted as a
-"distinctive answer" from a test literal. Fix: needles now exclude path-like
-strings (containing `/`). Re-running the same task post-fix: A✓ / B=0.0 / B′=1.0
-/ L=clean / **C=4/4 → admitted**, so the full path completes end to end. This is
-exactly the "wrongly rejecting valid tasks" risk flagged for the gate — worth
-the smoke on its own.
 
 **Interview takeaway**: the three JSON-robustness bugs and these three
 self-inconsistency modes (unmeetable threshold, exit-127 script, hallucinated
