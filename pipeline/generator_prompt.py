@@ -33,7 +33,11 @@ runtime, ~30 steps, 120 s per command. It never sees your tests or solution.
 
 Produce ONE task. Output a SINGLE, STRICT JSON object and nothing else — no
 prose, no markdown fence, no comments, all keys and strings double-quoted, no
-trailing commas. It must have exactly these keys:
+trailing commas. Your reply must BEGIN with {{ and END with }}: do NOT write
+any reasoning, planning, or verification before or after the object — not one
+word, do not think out loud, emit only the JSON. (Reasoning before the JSON
+wastes the token budget and truncates the object.) It must have exactly these
+keys:
 
 {OUTPUT_KEYS}
 

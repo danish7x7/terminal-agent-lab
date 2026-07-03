@@ -89,17 +89,22 @@ base64-encoded in the image, or derivable rather than copied) — those still
 rely on Gate B (an agent that reconstructs the answer without doing the task
 would also pre-solve). Documented so the gate isn't mistaken for a proof.
 
-⚠️ Needle source (learned the hard way): Gate L needles come from **reference
-data files only** (`answers.txt` etc.), never from test `.py` source. Early
-versions extracted string literals from the test code too, which flagged
-*output-format tokens the task legitimately states in task.md* — an I/O path
-(`/output/totals.txt`) and an output field name (`crossing_t`) were both
-false-flagged as leaks, wrongly quarantining valid tasks (and hitting the hard
-`scientific_computing` corner disproportionately, skewing admit rate). The
-answer *value* lives in data files; that is the only thing checked. Cost: an
-exact_text answer embedded solely in a test `.py` is not leak-checked by L —
-that narrow residual falls to Gate B and the generator's "answer only in
-tests/" rule.
+⚠️ Gate L scope (learned the hard way, three false positives): Gate L checks
+**the built image filesystem only**, and its needles come from **reference data
+files only** (`answers.txt` etc.), never from test `.py` source. Two things
+were over-broad and each produced false `answer_leak` quarantines of valid
+tasks: (a) extracting needles from test `.py` literals caught output-format
+tokens — an I/O path (`/output/totals.txt`), a field name (`crossing_t`); (b)
+checking `task.md` for needles caught a CSV header (`file,lines,words,bytes`)
+that the task legitimately states as its output format. The common root:
+`task.md` and test code legitimately restate output structure, so matching them
+is FP-prone. So Gate L now only asks the reward-hack question that matters
+(paper §D.6): is the answer *value* readable inside the container? Cost: an
+answer written into `task.md` prose, or embedded solely in a test `.py`, is not
+caught by L — that residual falls to Gate B and the generator's "answer only in
+tests/" hard requirement. (These FPs hit `scientific_computing`/format-heavy
+tasks disproportionately, so leaving them in would have skewed the admit-rate
+balance — the exact metric the gate exists to protect.)
 
 **Gate B′ repair loop (amend 7 — Option B, chosen).** Every broken_test case in
 the first real smoke batch had one root cause: the generator emits a reference

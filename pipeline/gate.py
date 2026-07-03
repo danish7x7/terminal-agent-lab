@@ -161,15 +161,17 @@ def _distinctive_needles(task_dir: Path) -> list[str]:
 
 
 def _leak_check(task_dir: Path, tag: str, cfg: RunConfig) -> tuple[bool, str | None]:
-    """Gate L: is any distinctive answer reachable from task.md or the image?
-    Runs on a fresh container (the agent's view — tests/ are not present)."""
+    """Gate L: is any distinctive answer VALUE reachable inside the built image
+    (the agent's runtime view; tests/ are not present there)?
+
+    We deliberately do NOT check task.md. It legitimately contains output-format
+    structure — headers ('file,lines,words,bytes'), field names ('crossing_t'),
+    I/O paths ('/output/totals.txt') — which repeatedly matched as false leaks
+    and wrongly quarantined valid tasks. The reward-hack vector that actually
+    matters (paper SD.6) is an answer file the agent can read in the container."""
     needles = _distinctive_needles(task_dir)
     if not needles:
         return False, None
-    task_md = (task_dir / "task.md").read_text()
-    for n in needles:
-        if n in task_md:
-            return True, n
     with Sandbox(tag, cfg.container()) as sb:
         for n in needles:
             q = n.replace("'", "'\\''")
