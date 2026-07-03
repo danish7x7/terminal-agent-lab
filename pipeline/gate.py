@@ -29,7 +29,6 @@ from pipeline.sampler import Signature
 
 PASS_REWARD = 1.0  # both kinds pass iff all tests green (threshold lives in the test)
 _BASH_RE = re.compile(r"```bash\n(.*?)```", re.DOTALL)
-_STR_LITERAL_RE = re.compile(r"""(['"])(.+?)\1""")
 _MIN_NEEDLE = 8  # shorter answers aren't distinctive enough to leak-check (003 limitation)
 
 _META_FILES = {"task.md", "Dockerfile", "solution.md", "signature.yaml", "gate.json"}
@@ -135,27 +134,29 @@ def _rmi(tag: str) -> None:
 
 
 def _is_answer_like(s: str) -> bool:
-    """Keep only strings that could plausibly be a leaked answer. Exclude:
-    - short/common strings (< _MIN_NEEDLE chars, e.g. 'high');
-    - path-like strings (contain '/') — I/O paths such as '/output/totals.txt'
-      legitimately appear in task.md, so matching them there is a false leak.
-    Documented Gate L limitation (decision 003): verbatim, distinctive,
-    non-path answers only."""
+    """Keep only strings that could plausibly be a leaked answer VALUE. Exclude
+    short/common strings (< _MIN_NEEDLE chars) and path-like strings (contain
+    '/'). Documented Gate L limitation (decision 003)."""
     return len(s) >= _MIN_NEEDLE and "/" not in s
 
 
 def _distinctive_needles(task_dir: Path) -> list[str]:
-    """Answer-bearing strings distinctive enough to leak-check: reference-file
-    lines and test string literals that pass _is_answer_like."""
+    """Answer-bearing strings to leak-check: lines from reference DATA files
+    (answers.txt etc.) only — NOT test .py source.
+
+    Test .py literals are dominated by output-format labels, file paths, field
+    names, and assertion messages that LEGITIMATELY appear in task.md (a task
+    states its own output format), which produced repeated false positives — an
+    I/O path '/output/totals.txt' and an output field name 'crossing_t' were
+    both flagged as leaks. The real leak target is the answer VALUE, which lives
+    in reference data files; those are the only needles. Trade-off: an
+    exact_text answer embedded only in a test .py is not leak-checked here — that
+    narrow residual falls to Gate B and the generator's 'answer only in tests/'
+    requirement."""
     needles: set[str] = set()
     for p in (task_dir / "tests").iterdir():
-        if not p.is_file():
-            continue
-        text = p.read_text()
-        if p.suffix == ".py":
-            needles.update(m[1] for m in _STR_LITERAL_RE.findall(text))
-        else:
-            needles.update(line.strip() for line in text.splitlines())
+        if p.is_file() and p.suffix != ".py":
+            needles.update(line.strip() for line in p.read_text().splitlines())
     return [n for n in sorted(needles) if _is_answer_like(n)][:25]
 
 

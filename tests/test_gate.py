@@ -60,29 +60,44 @@ def test_build_repair_prompt_carries_execution_feedback():
     assert "must STILL fail" in prompt  # keeps the not-pre-solved invariant
 
 
-def test_distinctive_needles_skip_short_and_keep_long(tmp_path):
+def test_distinctive_needles_from_data_files_only(tmp_path):
     dest = materialize_task(CANNED, tmp_path / "t", _sig())
     needles = _distinctive_needles(dest)
     assert "the-distinctive-answer-line" in needles   # >= 8 chars, from answers.txt
-    assert "the-secret-value-1234" in needles         # string literal in the test
     assert "short" not in needles                      # < 8 chars, skipped
+    # test .py literals are NOT needles (they are format/labels, not answers)
+    assert "the-secret-value-1234" not in needles
 
 
-def test_distinctive_needles_exclude_io_paths(tmp_path):
-    # Regression: an I/O path in a test literal must NOT be a leak needle — it
-    # legitimately appears in task.md (seed 105 false-positive: /output/totals.txt).
+def test_distinctive_needles_ignore_test_py_labels_and_paths(tmp_path):
+    # Regressions for two false positives, both from test .py literals that
+    # legitimately appear in task.md: an I/O path (seed 105 /output/totals.txt)
+    # and an output field name (seed 301 crossing_t). With a reference data
+    # file present, only its answer lines are needles.
     gen = {
         **CANNED,
-        "task_md": "Write your results to /output/totals.txt.",
+        "task_md": "Write crossing_t=<T> to /output/totals.txt.",
         "tests": {
-            "test_p.py": "def test():\n    assert open('/output/totals.txt').read()\n",
+            "test_p.py": "def test():\n    assert 'crossing_t=' in open('/output/totals.txt').read()\n",
             "answers.txt": "Widget: 500\nGadget: 1200\n",
         },
     }
     dest = materialize_task(gen, tmp_path / "t", _sig())
     needles = _distinctive_needles(dest)
-    assert "/output/totals.txt" not in needles     # path excluded
-    assert "Widget: 500" in needles                # real answer kept
+    assert "/output/totals.txt" not in needles
+    assert "crossing_t=" not in needles
+    assert "Widget: 500" in needles
+
+
+def test_distinctive_needles_empty_when_no_data_file(tmp_path):
+    # seed 301 shape: answer embedded only in the test .py, no data file ->
+    # Gate L has nothing to check, so it must not fire (was a false positive).
+    gen = {
+        **CANNED,
+        "tests": {"test_only.py": "def test():\n    assert open('/output/x').read() == 'crossing_t=1.234567\\n'\n"},
+    }
+    dest = materialize_task(gen, tmp_path / "t", _sig())
+    assert _distinctive_needles(dest) == []
 
 
 def test_finalize_moves_dir_and_writes_gate_json(tmp_path):
